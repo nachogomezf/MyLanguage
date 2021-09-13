@@ -18,6 +18,11 @@ import java.util.List;
 public final class Lexer {
 
     private final CharStream chars;
+    private int start = 0;
+    private int current = 0;
+    private boolean isAtEnd() {
+        return current >= chars.length;
+    }
 
     public Lexer(String input) {
         chars = new CharStream(input);
@@ -28,9 +33,13 @@ public final class Lexer {
      * whitespace where appropriate.
      */
     public List<Token> lex() {
-        throw new UnsupportedOperationException(); //TODO
+        //throw new UnsupportedOperationException(); //TODO
+        List<Token> tokens=new ArrayList<>();
+        while(!isAtEnd()){
+            tokens.add(lexToken());
+        }
+        return tokens;
     }
-
     /**
      * This method determines the type of the next token, delegating to the
      * appropriate lex method. As such, it is best for this method to not change
@@ -40,11 +49,18 @@ public final class Lexer {
      * by {@link #lex()}
      */
     public Token lexToken() {
+        while(!this.peek("\\s")){
+            if (peek("'@'? [A-Za-z] [A-Za-z0-9_-]*")){
+                return lexIdentifier();
+            }
+        }
         throw new UnsupportedOperationException(); //TODO
     }
 
     public Token lexIdentifier() {
-        throw new UnsupportedOperationException(); //TODO
+        while (!this.match("\\s")) {}
+        return chars.emit(Token.Type.IDENTIFIER);
+        //throw new UnsupportedOperationException(); //TODO
     }
 
     public Token lexNumber() {
@@ -73,7 +89,13 @@ public final class Lexer {
      * return true if the next characters are {@code 'a', 'b', 'c'}.
      */
     public boolean peek(String... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in Lecture)
+        //throw new UnsupportedOperationException();
+        for ( int i=0; i<patterns.length; i++){
+            if ( !chars.has(i) || !String.valueOf(chars.get(i)).matches(patterns[i]))
+                return false;
+        }
+        //throw new UnsupportedOperationException();
+        return true;
     }
 
     /**
@@ -82,7 +104,13 @@ public final class Lexer {
      * true. Hint - it's easiest to have this method simply call peek.
      */
     public boolean match(String... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in Lecture)
+        //throw new UnsupportedOperationException();
+        if (peek()){
+            for (int i=0; i<patterns.length; i++){
+                    chars.advance();
+            }
+        }
+        return peek();
     }
 
     /**
@@ -97,7 +125,7 @@ public final class Lexer {
 
         private final String input;
         private int index = 0;
-        private int length = 0;
+        public int length = 0; //!
 
         public CharStream(String input) {
             this.input = input;
