@@ -47,40 +47,62 @@ public final class Lexer {
      *
      * The next character should start a valid token since whitespace is handled
      * by {@link #lex()}
+     * @return
      */
     public Token lexToken() {
-        while(!this.peek("\\s")){
-            if (peek("'@'? [A-Za-z] [A-Za-z0-9_-]*")){
+        while(!peek("\\s")){
+            if (peek("'@'?[A-Za-z][A-Za-z0-9_-]*")){
                 return lexIdentifier();
             }
+            if (peek("'0'|'-'?[1-9][0-9]*")){
+                return lexNumber();
+            }
+            if (peek("\'([^\'\\]|.)\'")){
+                return lexCharacter();
+            }
+            if (peek("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])*'\"'")){
+                return lexString();
+            }
+            if (peek("'\\'[bnrt'\"\\\\]")){
+                return lexEscape();
+            }
+            if (peek("[!=]'='?|'&&'|'||'|.")){
+                return lexOperator();
+            }
         }
+        //return null;
         throw new UnsupportedOperationException(); //TODO
     }
 
     public Token lexIdentifier() {
-        while (!this.match("\\s")) {}
+        match("'@'?[A-Za-z][A-Za-z0-9_-]*");
         return chars.emit(Token.Type.IDENTIFIER);
         //throw new UnsupportedOperationException(); //TODO
     }
 
     public Token lexNumber() {
-        throw new UnsupportedOperationException(); //TODO
+        match("'0'|'-'?[1-9][0-9]*");
+        return chars.emit(Token.Type.INTEGER);
     }
 
     public Token lexCharacter() {
-        throw new UnsupportedOperationException(); //TODO
+        match("\'([^\'\\]|.)\'");
+        return chars.emit(Token.Type.CHARACTER);
     }
 
     public Token lexString() {
-        throw new UnsupportedOperationException(); //TODO
+        match("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])*'\"'");
+        return chars.emit(Token.Type.STRING);
     }
 
-    public void lexEscape() {
-        throw new UnsupportedOperationException(); //TODO
+    public Token lexEscape() {
+        match("'\\'[bnrt'\"\\\\]");
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     public Token lexOperator() {
-        throw new UnsupportedOperationException(); //TODO
+        match("[!=]'='?|'&&'|'||'|.");
+        return chars.emit(Token.Type.OPERATOR);
     }
 
     /**
@@ -91,9 +113,12 @@ public final class Lexer {
     public boolean peek(String... patterns) {
         //throw new UnsupportedOperationException();
         for ( int i=0; i<patterns.length; i++){
-            if ( !chars.has(i) || !String.valueOf(chars.get(i)).matches(patterns[i]))
+            if ( !chars.has(i) || !String.valueOf(chars.get(i)).matches(patterns[i])) {
                 return false;
+            }
+            return true;
         }
+        System.out.println("Token generated");
         //throw new UnsupportedOperationException();
         return true;
     }
@@ -105,12 +130,13 @@ public final class Lexer {
      */
     public boolean match(String... patterns) {
         //throw new UnsupportedOperationException();
-        if (peek()){
+        boolean peek = peek(patterns);
+        if (peek){
             for (int i=0; i<patterns.length; i++){
                     chars.advance();
             }
         }
-        return peek();
+        return peek;
     }
 
     /**
