@@ -19,9 +19,8 @@ public final class Lexer {
 
     private final CharStream chars;
     private int start = 0;
-    private int current = 0;
     private boolean isAtEnd() {
-        return current >= chars.length;
+        return chars.getIndex() >= chars.getLength();
     }
 
     public Lexer(String input) {
@@ -34,9 +33,12 @@ public final class Lexer {
      */
     public List<Token> lex() {
         //throw new UnsupportedOperationException(); //TODO
-        List<Token> tokens=new ArrayList<>();
-        while(!isAtEnd()){
-            tokens.add(lexToken());
+        List<Token> tokens=new ArrayList<Token>();
+        while(!isAtEnd()) {
+            if (!match("\\s")) {
+                //chars.skip();
+                tokens.add(lexToken());
+            }
         }
         return tokens;
     }
@@ -50,26 +52,25 @@ public final class Lexer {
      * @return
      */
     public Token lexToken() {
-        while(!peek("\\s")){
+
             if (peek("'@'?[A-Za-z][A-Za-z0-9_-]*")){
                 return lexIdentifier();
             }
             if (peek("'0'|'-'?[1-9][0-9]*")){
                 return lexNumber();
             }
-            if (peek("\'([^\'\\]|.)\'")){
+            if (peek("\'([^\'\\\\]|.)\'")){
                 return lexCharacter();
             }
-            if (peek("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])*'\"'")){
+            if (peek("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])'\"'")){
                 return lexString();
             }
             if (peek("'\\'[bnrt'\"\\\\]")){
                 return lexEscape();
             }
-            if (peek("[!=]'='?|'&&'|'||'|.")){
+            if (peek("[!=]'='?|'&&'|'||'|.")) {
                 return lexOperator();
             }
-        }
         //return null;
         throw new UnsupportedOperationException(); //TODO
     }
@@ -86,7 +87,7 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        match("\'([^\'\\]|.)\'");
+        match("\'([^\'\\\\]|.)\'");
         return chars.emit(Token.Type.CHARACTER);
     }
 
@@ -151,7 +152,11 @@ public final class Lexer {
 
         private final String input;
         private int index = 0;
-        public int length = 0; //!
+        private int length = 0; //!
+
+        public int getLength(){ return this.length; };
+
+        public int getIndex(){ return this.index; };
 
         public CharStream(String input) {
             this.input = input;
