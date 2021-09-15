@@ -34,8 +34,8 @@ public final class Lexer {
     public List<Token> lex() {
         //throw new UnsupportedOperationException(); //TODO
         List<Token> tokens=new ArrayList<Token>();
-        while(!isAtEnd()) {
-            if (!match("\\s")) {
+        while(chars.has(0)) {
+            if (!match("[ \b\n\r\t]")) {
                 //chars.skip();
                 tokens.add(lexToken());
             }
@@ -53,32 +53,34 @@ public final class Lexer {
      */
     public Token lexToken() {
 
-            if (peek("'@'?[A-Za-z][A-Za-z0-9_-]*")){
-                return lexIdentifier();
-            }
-            if (peek("'0'|'-'?[1-9][0-9]*")){
-                return lexNumber();
-            }
-            if (peek("\'([^\'\\\\]|.)\'")){
-                return lexCharacter();
-            }
-            if (peek("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])'\"'")){
-                return lexString();
-            }
-            if (peek("'\\'[bnrt'\"\\\\]")){
-                return lexEscape();
-            }
-            if (peek("[!=]'='?|'&&'|'||'|.")) {
-                return lexOperator();
-            }
+        if (peek("[@A-Za-z]")){
+            return lexIdentifier();
+        }
+        if (peek("'0'|'-'?[1-9][0-9]*")){
+            return lexNumber();
+        }
+        if (peek("\'")){
+            return lexCharacter();
+        }
+        if (peek("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])'\"'")){
+            return lexString();
+        }
+        if (peek("'\\'[bnrt'\"\\\\]")){
+            return lexEscape();
+        }
+        if (peek("[!=]'='?|'&&'|'||'|.")) {
+            return lexOperator();
+        }
         //return null;
         throw new UnsupportedOperationException(); //TODO
     }
 
     public Token lexIdentifier() {
-        match("'@'?[A-Za-z][A-Za-z0-9_-]*");
+        match("[@A-Za-z]");
+        while (peek("[A-Za-z0-9_-]")) {
+            match("[A-Za-z0-9_-]");
+        }
         return chars.emit(Token.Type.IDENTIFIER);
-        //throw new UnsupportedOperationException(); //TODO
     }
 
     public Token lexNumber() {
@@ -87,7 +89,18 @@ public final class Lexer {
     }
 
     public Token lexCharacter() {
-        match("\'([^\'\\\\]|.)\'");
+        match("\'");
+        if (peek(".") | peek("\\[bnrt\'\"\\\\]")){
+            match(".|\\[bnrt\'\"\\\\]");
+        }
+        /*
+        while (peek("[^'\\n\\r\\\\]|'\\'[bnrt'\"\\\\]")){
+            match("[^'\\n\\r\\\\]|['\n']");
+        }
+        */
+        if (peek("\'")){
+            match("\'");
+        }
         return chars.emit(Token.Type.CHARACTER);
     }
 
@@ -98,7 +111,7 @@ public final class Lexer {
 
     public Token lexEscape() {
         match("'\\'[bnrt'\"\\\\]");
-        return chars.emit(Token.Type.OPERATOR);
+        return null;
     }
 
     public Token lexOperator() {
@@ -134,7 +147,7 @@ public final class Lexer {
         boolean peek = peek(patterns);
         if (peek){
             for (int i=0; i<patterns.length; i++){
-                    chars.advance();
+                chars.advance();
             }
         }
         return peek;
@@ -186,5 +199,4 @@ public final class Lexer {
         }
 
     }
-
 }
