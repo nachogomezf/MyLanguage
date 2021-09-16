@@ -19,9 +19,6 @@ public final class Lexer {
 
     private final CharStream chars;
     private int start = 0;
-    private boolean isAtEnd() {
-        return chars.getIndex() >= chars.getLength();
-    }
 
     public Lexer(String input) {
         chars = new CharStream(input);
@@ -36,7 +33,7 @@ public final class Lexer {
         List<Token> tokens=new ArrayList<Token>();
         while(chars.has(0)) {
             if (!match("[ \b\n\r\t]")) {
-                //chars.skip();
+                chars.skip();
                 tokens.add(lexToken());
             }
         }
@@ -56,13 +53,13 @@ public final class Lexer {
         if (peek("[@A-Za-z]")){
             return lexIdentifier();
         }
-        if (peek("'0'|'-'?[1-9][0-9]*")){
+        if (peek("[\\-0-9]")){
             return lexNumber();
         }
         if (peek("'")){
             return lexCharacter();
         }
-        if (peek("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])'\"'")){
+        if (peek("\"")){
             return lexString();
         }
         if (peek("'\\' [bnrt'\"\\\\]")){
@@ -72,7 +69,7 @@ public final class Lexer {
             return lexOperator();
         }
         //return null;
-        throw new UnsupportedOperationException(); //TODO
+        throw new ParseException("Lexing error",this.chars.getIndex()); //TODO
     }
 
     public Token lexIdentifier() {
@@ -84,7 +81,58 @@ public final class Lexer {
     }
 
     public Token lexNumber() {
-        match("'0'|'-'?[1-9][0-9]*");
+        if (peek("\\-")){
+            match("\\-");
+        }
+        /*
+        if(peek("[1-9]")){
+            match("[1-9]");
+        }
+        */
+        if (peek("0")){
+            match("0");
+
+            if (peek("\\.")){
+                match("\\.");
+            } else if (peek("[0-9]")) {
+                throw new ParseException("INVALID LEADING ZERO", this.chars.getIndex());
+            }
+            while (peek("[0-9]")){
+                match("[0-9]");
+            }
+            return chars.emit(Token.Type.DECIMAL);
+        }
+
+        else if (peek("[1-9]")){
+            match("[1-9]");
+            if (peek("\\.")){
+                match("\\.");
+                if (peek("[0-9]")) {
+                    match("[0-9]");
+                    while (peek("[0-9]")){
+                        match("[0-9]");
+                    }
+                    return chars.emit(Token.Type.DECIMAL);
+                } else {
+                    throw new ParseException("INVALID DECIMAL NUMBER", this.chars.getIndex());
+                }
+
+            }
+            while(peek("[0-9]")) {
+                match("[0-9]");
+            }
+
+            if (peek("\\.")){
+                match("\\.");
+
+                {
+                    while (peek("[0-9]")) {
+                        match("[0-9]");
+                    }
+                    return this.chars.emit(Token.Type.DECIMAL);
+                }
+            }
+        }
         return chars.emit(Token.Type.INTEGER);
     }
 
@@ -120,8 +168,27 @@ public final class Lexer {
     }
 
     public Token lexString() {
-        match("'\"'([^\"\\n\\r\\\\]|'\\'[bnrt'\"\\\\])*'\"'");
-        return chars.emit(Token.Type.STRING);
+        match("\"");
+
+        while (peek("[^\"]")){
+            if (peek("\\\\")){
+                match("\\\\");
+                if (peek("[bnrt\"\'\\\\]")){
+                    match("[bnrt\"\'\\\\]");
+                }
+                else{
+                    throw new ParseException("INVALID ESCAPE",this.chars.getIndex());
+                }
+            }
+            match("[^\"]");
+        }
+        if (peek("\"")){
+            match("\"");
+            return chars.emit(Token.Type.STRING);
+        }
+        else {
+            throw new ParseException("Unterminated string",chars.getIndex());
+        }
     }
 
     public Token lexEscape() {
@@ -130,6 +197,20 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
+        if (peek("!")){
+            match("!");
+            if (peek("=")) match("=");
+            return chars.emit(Token.Type.OPERATOR);
+        }
+        else if (peek("|")){
+            match("|");
+            if (peek("|")) match("|");
+            return chars.emit(Token.Type.OPERATOR);
+        }
+        else if (peek("&")){
+            match("&");
+            if (peek("&")) match("&");
+        }
         match("[!=]'='?|'&&'|'||'|.");
         return chars.emit(Token.Type.OPERATOR);
     }
