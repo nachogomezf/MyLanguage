@@ -154,6 +154,9 @@ public final class Lexer {
                 if (peek("\'")) {
                     match("\'");
                 }
+                else {
+                    throw new ParseException("Unterminated char", chars.getIndex());
+                }
                 return chars.emit(Token.Type.CHARACTER);
             }
         }
