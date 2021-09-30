@@ -84,11 +84,6 @@ public final class Lexer {
         if (peek("\\-")){
             match("\\-");
         }
-        /*
-        if(peek("[1-9]")){
-            match("[1-9]");
-        }
-        */
         if (peek("0")){
             match("0");
 
@@ -174,6 +169,10 @@ public final class Lexer {
         match("\"");
 
         while (peek("[^\"]")){
+            if (peek("\\b|\\n|\\r|\\t")) {//    
+                //match("\\[bnrt]");
+                throw new ParseException("INVALID ESCAPE",this.chars.getIndex());
+            }
             if (peek("\\\\")){
                 match("\\\\");
                 if (peek("[bnrt\"\'\\\\]")){

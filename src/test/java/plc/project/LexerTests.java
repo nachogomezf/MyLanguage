@@ -94,7 +94,7 @@ public class LexerTests {
                 Arguments.of("Unterminated", "\"unterminated", false),
                 Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
                 Arguments.of("Symbols", "\"!@#$%^&*()\"", true),
-                Arguments.of("Newline unterminated", "\"unterminated\n\"", false)
+                Arguments.of("Newline unterminated", "\"\n\"", false)
         );
     }
 
