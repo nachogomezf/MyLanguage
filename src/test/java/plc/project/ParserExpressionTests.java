@@ -357,12 +357,14 @@ final class ParserExpressionTests {
                 )
         );
     }
-
+    /*
     @ParameterizedTest
     @MethodSource
     void testExpression(String test, List<Token> tokens, Ast.Expression expected) {
         test(tokens, expected, Parser::parseExpression);
     }
+    private static test*/
+
     /**
      * Standard test function. If expected is null, a ParseException is expected
      * to be thrown (not used in the provided tests).

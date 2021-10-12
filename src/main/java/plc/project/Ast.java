@@ -1,13 +1,12 @@
 package plc.project;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * See the Parser assignment specification for specific notes on each AST class
- * and how to use it.
+ * See the Interpreter and Parser assignment specifications for specific notes on each AST class
+ * and how they are used.
  */
 public abstract class Ast {
 
@@ -596,7 +595,7 @@ public abstract class Ast {
             @Override
             public String toString() {
                 return "Ast.Expression.PlcList{" +
-                        ", values=[" + values + "]" +
+                        "values=[" + values + "]" +
                         '}';
             }
 
@@ -604,4 +603,82 @@ public abstract class Ast {
 
     }
 
+    public interface Visitor<T> {
+
+        default T visit(Ast ast) {
+            if (ast instanceof Ast.Source) {
+                return visit((Ast.Source) ast);
+            } else if (ast instanceof Ast.Global) {
+                return visit((Ast.Global) ast);
+            } else if (ast instanceof Ast.Function) {
+                return visit((Ast.Function) ast);
+            } else if (ast instanceof Ast.Statement.Expression) {
+                return visit((Ast.Statement.Expression) ast);
+            } else if (ast instanceof Ast.Statement.Declaration) {
+                return visit((Ast.Statement.Declaration) ast);
+            } else if (ast instanceof Ast.Statement.Assignment) {
+                return visit((Ast.Statement.Assignment) ast);
+            } else if (ast instanceof Ast.Statement.If) {
+                return visit((Ast.Statement.If) ast);
+            } else if (ast instanceof Ast.Statement.Switch) {
+                return visit((Ast.Statement.Switch) ast);
+            } else if (ast instanceof Ast.Statement.Case) {
+                return visit((Ast.Statement.Case) ast);
+            } else if (ast instanceof Ast.Statement.While) {
+                return visit((Ast.Statement.While) ast);
+            } else if (ast instanceof Ast.Statement.Return) {
+                return visit((Ast.Statement.Return) ast);
+            } else if (ast instanceof Ast.Expression.Literal) {
+                return visit((Ast.Expression.Literal) ast);
+            } else if (ast instanceof Ast.Expression.Group) {
+                return visit((Ast.Expression.Group) ast);
+            } else if (ast instanceof Ast.Expression.Binary) {
+                return visit((Ast.Expression.Binary) ast);
+            } else if (ast instanceof Ast.Expression.Access) {
+                return visit((Ast.Expression.Access) ast);
+            } else if (ast instanceof Ast.Expression.Function) {
+                return visit((Ast.Expression.Function) ast);
+            } else if (ast instanceof Ast.Expression.PlcList) {
+                return visit((Ast.Expression.PlcList) ast);
+            } else {
+                throw new AssertionError("Unimplemented AST type: " + ast.getClass().getName() + ".");
+            }
+        }
+
+        T visit(Ast.Source ast);
+
+        T visit(Ast.Global ast);
+
+        T visit(Ast.Function ast);
+
+        T visit(Ast.Statement.Expression ast);
+
+        T visit(Ast.Statement.Declaration ast);
+
+        T visit(Ast.Statement.Assignment ast);
+
+        T visit(Ast.Statement.If ast);
+
+        T visit(Ast.Statement.Switch ast);
+
+        T visit(Ast.Statement.Case ast);
+
+        T visit(Ast.Statement.While ast);
+
+        T visit(Ast.Statement.Return ast);
+
+        T visit(Ast.Expression.Literal ast);
+
+        T visit(Ast.Expression.Group ast);
+
+        T visit(Ast.Expression.Binary ast);
+
+        T visit(Ast.Expression.Access ast);
+
+        T visit(Ast.Expression.Function ast);
+
+        T visit(Ast.Expression.PlcList ast);
+    }
+
 }
+

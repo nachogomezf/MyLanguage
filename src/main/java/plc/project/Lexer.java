@@ -63,7 +63,7 @@ public final class Lexer {
             return lexString();
         }
         if (peek("'\\' [bnrt'\"\\\\]")){
-            return lexEscape();
+            match("'\\' [bnrt'\"\\\\]");
         }
         if (peek("[!=]'='?|'&&'|'||'|.")) {
             return lexOperator();
@@ -156,11 +156,6 @@ public final class Lexer {
             }
         }
         return null;
-        /*
-        while (peek("[^'\\n\\r\\\\]|'\\'[bnrt'\"\\\\]")){
-            match("[^'\\n\\r\\\\]|['\n']");
-        }
-        */
 
 
     }
@@ -175,7 +170,7 @@ public final class Lexer {
             }
             if (peek("\\\\")){
                 match("\\\\");
-                if (peek("[bnrt\"\'\\\\]")){
+                if (peek("[bnrt\"\'\\\\]")) {
                     match("[bnrt\"\'\\\\]");
                 }
                 else{
@@ -193,9 +188,9 @@ public final class Lexer {
         }
     }
 
-    public Token lexEscape() {
+    public void lexEscape() {
         match("'\\'[bnrt'\"\\\\]");
-        return null;
+
     }
 
     public Token lexOperator() {
