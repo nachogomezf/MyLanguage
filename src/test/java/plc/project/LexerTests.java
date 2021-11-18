@@ -76,7 +76,7 @@ public class LexerTests {
                 Arguments.of("Empty", "\'\'", false),
                 Arguments.of("Multiple", "\'abc\'", false),
                 Arguments.of("Unterminated","\'", false),
-                Arguments.of("Newline", "\'␊\'", false)
+                Arguments.of("Newline", "\'\n\'", false)
         );
     }
 
