@@ -52,7 +52,7 @@ public final class AnalyzerTests {
                                 Arrays.asList(),
                                 Arrays.asList(
                                         new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.empty(), Arrays.asList(
-                                            new Ast.Statement.Return(new Ast.Expression.Literal(new BigInteger("0"))))
+                                                new Ast.Statement.Return(new Ast.Expression.Literal(new BigInteger("0"))))
                                         )
                                 )
                         ),
@@ -63,7 +63,7 @@ public final class AnalyzerTests {
 
     @ParameterizedTest(name = "{0}")
     @MethodSource
-    public void testGlobal(String test, Ast.Statement.Declaration ast, Ast.Statement.Declaration expected) {
+    public void testGlobal(String test, Ast.Global ast, Ast.Global expected) {
         Analyzer analyzer = test(ast, expected, new Scope(null));
         if (expected != null) {
             Assertions.assertEquals(expected.getVariable(), analyzer.scope.lookupVariable(expected.getName()));
@@ -113,10 +113,10 @@ public final class AnalyzerTests {
                         // Recall note under Ast.Function, we do not check for missing RETURN
                         new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"),
                                 Arrays.asList(
-                                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(
-                                        new Ast.Expression.Literal("Hello, World!")
-                                )))
-                         )),
+                                        new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(
+                                                new Ast.Expression.Literal("Hello, World!")
+                                        )))
+                                )),
                         init(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
                                 new Ast.Statement.Expression(init(new Ast.Expression.Function("print", Arrays.asList(
                                         init(new Ast.Expression.Literal("Hello, World!"), ast -> ast.setType(Environment.Type.STRING))
@@ -131,9 +131,9 @@ public final class AnalyzerTests {
                                 )
                         ),
                         init(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
-                                new Ast.Statement.Return(init(new Ast.Expression.Literal(new BigInteger("0")), ast -> ast.setType(Environment.Type.INTEGER)))
-                        )),
-                        ast -> ast.setFunction(new Environment.Function("main", "main", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL)))
+                                        new Ast.Statement.Return(init(new Ast.Expression.Literal(new BigInteger("0")), ast -> ast.setType(Environment.Type.INTEGER)))
+                                )),
+                                ast -> ast.setFunction(new Environment.Function("main", "main", Arrays.asList(), Environment.Type.INTEGER, args -> Environment.NIL)))
                 ),
                 Arguments.of("Return Type Mismatch",
                         // FUN increment(num: Integer): Decimal DO RETURN num + 1; END
@@ -253,7 +253,7 @@ public final class AnalyzerTests {
                                 new Ast.Expression.Literal("FALSE"),
                                 Arrays.asList(new Ast.Statement.Expression(
                                         new Ast.Expression.Function("print", Arrays.asList(
-                                            new Ast.Expression.Literal(BigInteger.ONE)
+                                                new Ast.Expression.Literal(BigInteger.ONE)
                                         ))
                                 )),
                                 Arrays.asList()
@@ -305,7 +305,7 @@ public final class AnalyzerTests {
     private static Stream<Arguments> testSwitchStatement() {
         return Stream.of(
                 Arguments.of("Condition Value Type Match",
-                        // SWITCH letter CASE 'y': print("yes"); letter = 'n'; DEFAULT: print("no"); END
+                        // SWITCH letter CASE 'y': print("yes"); letter = 'n'; DEFAULT print("no"); END
                         new Ast.Statement.Switch(
                                 new Ast.Expression.Access(Optional.empty(),"letter"),
                                 Arrays.asList(
@@ -318,7 +318,13 @@ public final class AnalyzerTests {
                                                                 new Ast.Expression.Literal('n')
                                                         )
                                                 )
-                                       )
+                                        ),
+                                        new Ast.Statement.Case(
+                                                Optional.empty(),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("no"))))
+                                                )
+                                        )
                                 )
                         ),
                         new Ast.Statement.Switch(
@@ -329,12 +335,22 @@ public final class AnalyzerTests {
                                                 Arrays.asList(
                                                         new Ast.Statement.Expression(
                                                                 init(new Ast.Expression.Function("print", Arrays.asList(init(new Ast.Expression.Literal("yes"), ast -> ast.setType(Environment.Type.STRING)))),
-                                                                      ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
+                                                                        ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
                                                                 )
                                                         ),
                                                         new Ast.Statement.Assignment(
                                                                 init(new Ast.Expression.Access(Optional.empty(), "letter"), ast -> ast.setVariable(new Environment.Variable("letter", "letter", Environment.Type.CHARACTER, true, Environment.create('y')))),
                                                                 init(new Ast.Expression.Literal('n'), ast -> ast.setType(Environment.Type.CHARACTER))
+                                                        )
+                                                )
+                                        ),
+                                        new Ast.Statement.Case(
+                                                Optional.empty(),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(
+                                                                init(new Ast.Expression.Function("print", Arrays.asList(init(new Ast.Expression.Literal("no"), ast -> ast.setType(Environment.Type.STRING)))),
+                                                                        ast -> ast.setFunction(new Environment.Function("print", "System.out.println", Arrays.asList(Environment.Type.ANY), Environment.Type.NIL, args -> Environment.NIL))
+                                                                )
                                                         )
                                                 )
                                         )
@@ -354,6 +370,12 @@ public final class AnalyzerTests {
                                                                 new Ast.Expression.Access(Optional.empty(), "letter"),
                                                                 new Ast.Expression.Literal('n')
                                                         )
+                                                )
+                                        ),
+                                        new Ast.Statement.Case(
+                                                Optional.empty(),
+                                                Arrays.asList(
+                                                        new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Literal("no"))))
                                                 )
                                         )
                                 )

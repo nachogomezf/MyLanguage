@@ -17,7 +17,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     public Scope scope;
     private Ast.Function function;
-    private Ast.Expression returnType;
+    private Environment.Type returnType;
 
     public Analyzer(Scope parent) {
         scope = new Scope(parent);
@@ -47,9 +47,22 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Global ast) {
-        if (ast.getValue().isPresent()) visit(ast.getValue().get());
-        ast.setVariable(scope.defineVariable(ast.getName(), ast.getName(), Environment.getType(ast.getTypeName()), ast.getMutable(), Environment.NIL));
-        requireAssignable(ast.getVariable().getType(), ast.getValue().get().getType());
+
+        Environment.Type type = null;
+        type = Environment.getType(ast.getTypeName());
+        if (ast.getValue().isPresent()) {
+
+            visit(ast.getValue().get());
+
+            if (type == null) {
+                type = ast.getValue().get().getType();
+            }
+
+            requireAssignable(type, ast.getValue().get().getType());
+        }
+
+        Environment.Variable var = scope.defineVariable(ast.getName(), ast.getName(), type, ast.getMutable(), Environment.NIL);
+        ast.setVariable(var);
         return null;
     }
 
@@ -60,22 +73,22 @@ public final class Analyzer implements Ast.Visitor<Void> {
             paramTypes.add(Environment.getType(s));
         });
 
-        Environment.Type returnType = Environment.Type.NIL;
+        this.returnType = Environment.Type.NIL;
         if (ast.getReturnTypeName().isPresent()) {
-            returnType = Environment.getType(ast.getReturnTypeName().get());
+            this.returnType = Environment.getType(ast.getReturnTypeName().get());
         }
-
-        ast.setFunction(scope.defineFunction(ast.getName(), ast.getName(), paramTypes, returnType, args -> Environment.NIL));
+        ast.setFunction(scope.defineFunction(ast.getName(), ast.getName(), paramTypes, this.returnType, args -> Environment.NIL));
         try {
-            scope = new Scope(scope);
 
+            scope = new Scope(scope);
+            for (Ast.Statement stmt : ast.getStatements()) {
+                visit(stmt);
+            }
             for (int i = 0; i < ast.getParameters().size(); i++) {
                 scope.defineVariable(ast.getParameters().get(i), ast.getParameters().get(i), paramTypes.get(i), true, Environment.NIL);
             }
 
-            for (Ast.Statement stmt : ast.getStatements()) {
-                visit(stmt);
-            }
+
         } finally {
             scope = scope.getParent();
         }
@@ -86,17 +99,36 @@ public final class Analyzer implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Statement.Expression ast) {
         if (!(ast.getExpression() instanceof Ast.Expression.Function)) throw new RuntimeException();
+        visit(ast.getExpression());
         return null;
     }
 
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
 
-        if ( ast.getTypeName().isPresent() && ast.getValue().isPresent()){
-            visit(ast.getValue().get());
-            if ( !(ast.getTypeName().get().equals(ast.getValue().get().getType().getName()))) throw new RuntimeException();
-            ast.setVariable(scope.defineVariable(ast.getName(), ast.getTypeName().get(),ast.getValue().get().getType(), true, Environment.create(ast.getValue().get())));
+        if (!ast.getTypeName().isPresent() && !ast.getValue().isPresent()) {
+            throw new RuntimeException("Expected type or value when declaring a variable.");
         }
+
+        Environment.Type type = null;
+
+        if (ast.getTypeName().isPresent()) {
+            type = Environment.getType(ast.getTypeName().get());
+        }
+
+        if (ast.getValue().isPresent()) {
+
+            visit(ast.getValue().get());
+
+            if (type == null) {
+                type = ast.getValue().get().getType();
+            }
+
+            requireAssignable(type, ast.getValue().get().getType());
+        }
+
+        Environment.Variable var = scope.defineVariable(ast.getName(), ast.getName(), type,true, Environment.NIL);
+        ast.setVariable(var);
         return null;
     }
 
@@ -133,9 +165,8 @@ public final class Analyzer implements Ast.Visitor<Void> {
         }
         return null;*/
         visit(ast.getCondition());
-        if (ast.getCondition().getType() != Environment.Type.BOOLEAN || ast.getThenStatements().isEmpty()) {
-            throw new RuntimeException();
-        }
+        requireAssignable(ast.getCondition().getType(), Environment.Type.BOOLEAN);
+        if (ast.getThenStatements().isEmpty()) throw new RuntimeException();
 
         for (Ast.Statement then : ast.getThenStatements()) {
             try {
@@ -158,32 +189,50 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Statement.Switch ast) {
-        throw new UnsupportedOperationException();  // TODO
-    }
-
-    @Override
-    public Void visit(Ast.Statement.Case ast) {
-        throw new UnsupportedOperationException();  // TODO
-    }
-
-    @Override
-    public Void visit(Ast.Statement.While ast) {
         visit(ast.getCondition());
-        if (ast.getCondition().getType() != Environment.Type.BOOLEAN) {
-            scope = new Scope(scope);
-            for (Ast.Statement stmt : ast.getStatements()) {
-                visit(stmt);
+        List<Ast.Statement.Case> g = ast.getCases();
+        for (int i = 0 ; i<g.size(); i++){
+            try {
+                scope = new Scope(scope);
+                visit(g.get(i));
+                if (g.get(i).getValue().isPresent()) {
+                    visit(g.get(i).getValue().get());
+                    requireAssignable(ast.getCondition().getType(),g.get(i).getValue().get().getType());
+                }
+                if (i == g.size()-1 && g.get(i).getValue().isPresent()) throw new RuntimeException();
+            } finally {
+                scope = scope.getParent();
             }
         }
         return null;
     }
 
     @Override
-    public Void visit(Ast.Statement.Return ast) {
-
-        if (ast.getValue().getType() != returnType.getType()) {
-            throw new RuntimeException();
+    public Void visit(Ast.Statement.Case ast) {
+        try{
+            scope = new Scope(scope);
+            ast.getStatements().forEach(this::visit);
+        } finally {
+            scope = scope.getParent();
         }
+        return null;
+    }
+
+    @Override
+    public Void visit(Ast.Statement.While ast) {
+        visit(ast.getCondition());
+        requireAssignable(Environment.Type.BOOLEAN,ast.getCondition().getType());
+        scope = new Scope(scope);
+        for (Ast.Statement stmt : ast.getStatements()) {
+            visit(stmt);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visit(Ast.Statement.Return ast) {
+        visit(ast.getValue());
+        requireAssignable(ast.getValue().getType(), this.returnType);
         return null;
     }
 
@@ -300,7 +349,14 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        throw new UnsupportedOperationException();  // TODO
+        ast.getArguments().forEach(this::visit);
+        ast.setFunction(scope.lookupFunction(ast.getName(),ast.getArguments().size()));
+        for (int i = 0; i<ast.getArguments().size(); i++){
+            requireAssignable(ast.getFunction().getParameterTypes().get(i),ast.getArguments().get(i).getType());
+        }
+
+        //requireAssignable(ast.getFunction().getReturnType(),as);
+        return null;
     }
 
     @Override
@@ -315,8 +371,6 @@ public final class Analyzer implements Ast.Visitor<Void> {
     public static void requireAssignable(Environment.Type target, Environment.Type type) {
         if (target.getJvmName().equals("Object")) return;
         if( target.getJvmName().equals("Comparable") && ( type.getJvmName().equals("String") || type.getJvmName().equals("boolean") || type.getJvmName().equals("char") || type.getJvmName().equals("double")|| type.getJvmName().equals("int"))) return;
-        System.out.println(target.getJvmName());
-        System.out.println(type.getJvmName());
         if ( !target.getJvmName().equals(type.getJvmName()) ){
             throw new RuntimeException();
         }
