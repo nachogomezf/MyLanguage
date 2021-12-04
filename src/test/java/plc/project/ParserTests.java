@@ -46,7 +46,7 @@ final class ParserTests {
                                 new Token(Token.Type.OPERATOR, ";", 21)
                         ),
                         new Ast.Source(
-                                Arrays.asList(new Ast.Global("name", false, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
+                                Arrays.asList(new Ast.Global("name", "Type", false, Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")))),
                                 Arrays.asList()
                         )
                 ),
@@ -436,6 +436,41 @@ final class ParserTests {
         );
     }
 
+
+    @Test
+    void testExample2(){
+        List<Token> input = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                new Token(Token.Type.IDENTIFIER, "main", 4),
+                new Token(Token.Type.OPERATOR, "(", 8),
+                new Token(Token.Type.OPERATOR, ")", 9),
+                new Token(Token.Type.OPERATOR, ":", 10),
+                new Token(Token.Type.IDENTIFIER, "Integer", 12),
+                new Token(Token.Type.IDENTIFIER, "DO", 20),
+                new Token(Token.Type.IDENTIFIER, "println", 23),
+                new Token(Token.Type.OPERATOR, "(", 30),
+                new Token(Token.Type.IDENTIFIER, "\"Hello, world!\"", 31),
+                new Token(Token.Type.OPERATOR, ")", 47),
+                new Token(Token.Type.OPERATOR, ";", 48),
+                new Token(Token.Type.IDENTIFIER, "END", 50)
+        );
+        Ast.Source expected = new Ast.Source(
+                Arrays.asList(),
+                Arrays.asList(
+                        new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
+                                        new Ast.Statement.Expression(
+                                                new Ast.Expression.Function("println", Arrays.asList(
+                                                        new Ast.Expression.Access(Optional.empty(),"\"Hello, world!\"")
+                                                )
+                                        )
+                                )
+
+                        ))
+                )
+        );
+        test(input, expected, Parser::parseSource);
+
+    }
     @Test
     void testExample1() {
         List<Token> input = Arrays.asList(
@@ -488,30 +523,30 @@ final class ParserTests {
                 new Token(Token.Type.IDENTIFIER, "END", 129)
         );
         Ast.Source expected = new Ast.Source(
-                Arrays.asList(new Ast.Global("first", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)))),
+                Arrays.asList(new Ast.Global("first", "Integer", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)))),
                 Arrays.asList(new Ast.Function("main", Arrays.asList(), Arrays.asList(), Optional.of("Integer"), Arrays.asList(
-                        new Ast.Statement.While(
-                                new Ast.Expression.Binary("!=",
-                                        new Ast.Expression.Access(Optional.empty(), "first"),
-                                        new Ast.Expression.Literal(BigInteger.TEN)
-                                ),
-                                Arrays.asList(
-                                        new Ast.Statement.Expression(
-                                                new Ast.Expression.Function("print", Arrays.asList(
-                                                        new Ast.Expression.Access(Optional.empty(), "first"))
-                                                )
-                                        ),
-                                        new Ast.Statement.Assignment(
+                                new Ast.Statement.While(
+                                        new Ast.Expression.Binary("!=",
                                                 new Ast.Expression.Access(Optional.empty(), "first"),
-                                                new Ast.Expression.Binary("+",
+                                                new Ast.Expression.Literal(BigInteger.TEN)
+                                        ),
+                                        Arrays.asList(
+                                                new Ast.Statement.Expression(
+                                                        new Ast.Expression.Function("print", Arrays.asList(
+                                                                new Ast.Expression.Access(Optional.empty(), "first"))
+                                                        )
+                                                ),
+                                                new Ast.Statement.Assignment(
                                                         new Ast.Expression.Access(Optional.empty(), "first"),
-                                                        new Ast.Expression.Literal(BigInteger.ONE)
+                                                        new Ast.Expression.Binary("+",
+                                                                new Ast.Expression.Access(Optional.empty(), "first"),
+                                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                                        )
                                                 )
                                         )
                                 )
-                        )
-                ))
-        ));
+                        ))
+                ));
         test(input, expected, Parser::parseSource);
     }
 

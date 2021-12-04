@@ -80,19 +80,22 @@ public final class Parser {
     public Ast.Global parseList() throws ParseException {
         if (match(Token.Type.IDENTIFIER)){
             String id = tokens.get(-1).getLiteral();
+            if (!match(":")) throw errorHandle("Expected :");
+            if (!match(Token.Type.IDENTIFIER)) throw errorHandle("Expected type");
+            String type = tokens.get(-1).getLiteral();
             List<Ast.Expression> expressions = new ArrayList<>();
             if (match("=")){
                 if (match("[")){
-                    if (match("]")) return new Ast.Global(id,true,Optional.empty());
+                    if (match("]")) throw errorHandle("Expected expression");
                     expressions.add(parseExpression());
                     while (match(",")){
                         expressions.add(parseExpression());
                     }
-                    if (match("]")) return new Ast.Global(id,true,Optional.of(new Ast.Expression.PlcList(expressions)));
+                    if (match("]")) return new Ast.Global(id,type,true,Optional.of(new Ast.Expression.PlcList(expressions)));
+                    else throw errorHandle("Expected ]");
                 } else throw errorHandle("Expected [");
             } else throw errorHandle("Expected =");
         } else throw errorHandle("Expected identifier");
-        throw new UnsupportedOperationException();
     }
 
     /**
@@ -103,10 +106,13 @@ public final class Parser {
     public Ast.Global parseMutable() throws ParseException {
         if (match(Token.Type.IDENTIFIER)) {
             String id = tokens.get(-1).getLiteral();
+            if (!match(":")) throw errorHandle("Expected :");
+            if (!match(Token.Type.IDENTIFIER)) throw errorHandle("Expected type");
+            String type = tokens.get(-1).getLiteral();
             if (match("=")){
-                return new Ast.Global(id,true,Optional.of(parseExpression()));
+                return new Ast.Global(id,type,true,Optional.of(parseExpression()));
             }
-            return new Ast.Global(id,true,Optional.empty());
+            return new Ast.Global(id,type,true,Optional.empty());
         } else throw errorHandle("Expected identifier");
     }
 
@@ -118,8 +124,11 @@ public final class Parser {
     public Ast.Global parseImmutable() throws ParseException {
         if (match(Token.Type.IDENTIFIER)) {
             String id = tokens.get(-1).getLiteral();
+            if (!match(":")) throw errorHandle("Expected :");
+            if (!match(Token.Type.IDENTIFIER)) throw errorHandle("Expected type");
+            String type = tokens.get(-1).getLiteral();
             if (match("=")){
-                return new Ast.Global(id,false,Optional.of(parseExpression()));
+                return new Ast.Global(id,type,false,Optional.of(parseExpression()));
             } else throw errorHandle("Expected =");
         } else throw errorHandle("Expected identifier");
     }
@@ -130,28 +139,36 @@ public final class Parser {
      * function ::= 'FUN' identifier '(' (identifier (',' identifier)* )? ')' 'DO' block 'END'
      */
     public Ast.Function parseFunction() throws ParseException {
-        if (match(Token.Type.IDENTIFIER)){
+        if (!match(Token.Type.IDENTIFIER)) throw errorHandle("Expected ID");
             String id = tokens.get(-1).getLiteral();
-            if (match("(")){
-                List<String> list = new ArrayList<>();
-                if (match(Token.Type.IDENTIFIER)){
+            if (!match("(")) throw errorHandle("Expected (");
+            List<String> list = new ArrayList<>();
+            List<String> types = new ArrayList<>();
+            Optional<String> returntype = Optional.empty();
+            if (!peek(")")) {
+                if (match(Token.Type.IDENTIFIER)) {
                     list.add(tokens.get(-1).getLiteral());
-                }
-                while (match(",")){
-                    if (match(Token.Type.IDENTIFIER)){
+                    if (!match(":")) throw errorHandle("Expected :");
+                    if (!match(Token.Type.IDENTIFIER)) throw errorHandle("Expected type");
+                    types.add(tokens.get(-1).getLiteral());
+                    while (match(",")) {
+                        if (!match(Token.Type.IDENTIFIER)) throw errorHandle("Expected ID");
                         list.add(tokens.get(-1).getLiteral());
-                    } else throw errorHandle("Expected ID");
+                        if (!match(":")) throw errorHandle("Expected :");
+                        if (!match(Token.Type.IDENTIFIER)) throw errorHandle("Expected type");
+                        types.add(tokens.get(-1).getLiteral());
+                    }
                 }
-                if (match(")")) {
-                    if (match("DO")) {
-                        List<Ast.Statement> b = parseBlock();
-                        if (match("END")) {
-                            return new Ast.Function(id, list, b);
-                        } else throw errorHandle("Expected END");
-                    } else throw errorHandle("Expected DO");
-                } else throw errorHandle("Expected )");
-            } else throw errorHandle("Expected (");
-        } else throw errorHandle("Expected id");
+            }
+            if (!match(")")) throw errorHandle("Expected )");
+            if (match(":")){
+                if (match(Token.Type.IDENTIFIER)) returntype = Optional.of(tokens.get(-1).getLiteral());
+                else throw errorHandle("Expected ID");
+            }
+            if (!match("DO")) throw errorHandle("Expected DO");
+            List<Ast.Statement> b = parseBlock();
+            if (!match("END")) throw errorHandle("Expected END");
+            return new Ast.Function(id,list,types,returntype, b);
     }
 
     /**
@@ -161,12 +178,14 @@ public final class Parser {
      */
     public List<Ast.Statement> parseBlock() throws ParseException {
         List<Ast.Statement> list = new ArrayList<>();
-        while (peek("LET") || peek("SWITCH") || peek("IF") || peek("RETURN")){
+        while (tokens.has(0) && !peek("END") && !peek("ELSE")) list.add(parseStatement());
+        /*
+        while (peek("LET") || peek("SWITCH") || peek("IF") || peek("WHILE") || peek("RETURN")){
             list.add(parseStatement());
         }
         while (tokens.has(0) && !peek("END") && !peek("ELSE") && !peek("DEFAULT") && !peek("RETURN")){
             list.add(parseStatement());
-        }
+        }*/
         return list;
     }
 
@@ -198,9 +217,10 @@ public final class Parser {
         if (match("=")) {
             Ast.Expression st2 = parseExpression();
             if (match(";")) return new Ast.Statement.Assignment(st, st2);
-            else throw new ParseException("Missing semicolon", tokens.index);
-        } else if (match(";")) return new Ast.Statement.Expression(st);
-        else throw new ParseException("Missing semicolon", tokens.index);
+            else throw errorHandle("Missing ; 1");
+        }
+        if (match(";")) return new Ast.Statement.Expression(st);
+        else throw errorHandle("Missing ; 2");
     }
 
     /**
@@ -211,13 +231,18 @@ public final class Parser {
     public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
         if (!match(Token.Type.IDENTIFIER)) throw new ParseException("Expected id", tokens.index);
         Optional<Ast.Expression> value = Optional.empty();
+        Optional<String> type = Optional.empty();
         String s = tokens.get(-1).getLiteral();
+        if (match(":")){
+            if (match(Token.Type.IDENTIFIER)) type = Optional.of(tokens.get(-1).getLiteral());
+        }
         if (match("=")){
             value = Optional.of(parseExpression());
-            if (match(";")) return new Ast.Statement.Declaration(s,value);
-            else throw errorHandle("Missing semicolon");
+            if (match(";")) return new Ast.Statement.Declaration(s,type,value);
+            else throw errorHandle("Missing semicolon1");
         }
-        return new Ast.Statement.Declaration(s,Optional.empty());
+        if (!match(";")) throw errorHandle("Missing semicolon2");
+        return new Ast.Statement.Declaration(s,type,Optional.empty());
     }
 
     /**
