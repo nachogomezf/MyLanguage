@@ -93,6 +93,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         Ast.Expression value = ast.getValue();
         if (receiver instanceof Ast.Expression.Access) {
             Environment.Variable variable = scope.lookupVariable(((Ast.Expression.Access) receiver).getName());
+            if (!variable.getMutable()) throw new RuntimeException();
             if (!(((Ast.Expression.Access) receiver).getOffset().equals(Optional.empty()))) {
                 Ast.Expression.PlcList plclist = new Ast.Expression.PlcList((List<Ast.Expression>) variable.getValue().getValue());
                 int off = ((BigInteger) ((Ast.Expression.Literal) ((Ast.Expression.Access) receiver).getOffset().get()).getLiteral()).intValue();
@@ -112,16 +113,31 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Statement.If ast) {
         if(requireType(Boolean.class, visit(ast.getCondition())) != null) {
-            try {
-                scope = new Scope(scope);
+            //try {
                 if((Boolean) visit(ast.getCondition()).getValue()) {
-                    ast.getThenStatements().forEach(this::visit);
+                    for (Ast.Statement st : ast.getThenStatements()){
+                        try{
+                            scope = new Scope(scope);
+                            visit(st);
+                        }
+                        finally{
+                            scope = scope.getParent();
+                        }
+                    }
                 } else {
-                    ast.getElseStatements().forEach(this::visit);
+                    for (Ast.Statement st : ast.getElseStatements()){
+                        try{
+                            scope = new Scope(scope);
+                            visit(st);
+                        }
+                        finally{
+                            scope = scope.getParent();
+                        }
+                    }
                 }
-            } finally {
-                scope = scope.getParent();
-            }
+            //} finally {
+            //    scope = scope.getParent();
+            //}
         }
         return Environment.NIL;
     }
@@ -356,6 +372,18 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                     }
                 }
                 break;
+
+            case "^":
+                if(left.getValue() instanceof Comparable) {
+                    Environment.PlcObject right = visit(ast.getRight());
+                    requireType(BigInteger.class,right);
+                    if (left.getValue() instanceof BigInteger){
+                        return Environment.create(((BigInteger)left.getValue()).pow(((BigInteger) right.getValue()).intValue()));
+                    }
+                    if (left.getValue() instanceof BigDecimal){
+                        return Environment.create(((BigDecimal)left.getValue()).pow(((BigInteger) right.getValue()).intValue()));
+                    }
+                }
         }
         return Environment.NIL;
     }
