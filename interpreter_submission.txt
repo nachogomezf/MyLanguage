@@ -1,0 +1,76 @@
+InterpreterTests (84/102):
+  Global (6/7):
+    Function Value: Unexpected java.lang.NullPointerException (null)
+        VAR name = log(1);
+  Statement (29/34):
+    Expression (3/4):
+      Addition: Incorrect log, received "122"
+        log(1) + log(2);
+    Assignment (5/6):
+      Immutable: Expected RuntimeException, received nil
+        immutable = 10;, scope = {immutable = NIL}
+    If (5/6):
+      Function Condition: Incorrect log, received "falsefalse2"
+        IF log(FALSE) DO log(1); ELSE log(2); END
+    Switch (4/6):
+      Default: Incorrect log, received ""
+        SWITCH letter CASE 'a': log("yes"); letter = 'b'; DEFAULT log("no"); END, scope = {letter = 'c'}
+      Default only: Incorrect log, received ""
+        SWITCH letter DEFAULT log("no"); END, scope = {letter = 'a'}
+  Expression (39/45):
+    Binary (23/29):
+      Plus (3/4):
+        RHS String: Unexpected java.lang.RuntimeException (null)
+            1 + "10"
+      Exponent (0/5):
+        BigInteger LHS: Incorrect result, received nil (expected 512)
+            8 ^ 3
+        BigDecimal LHS: Incorrect result, received nil (expected 512.000)
+            8.0 ^ 3
+        Huge LHS: Incorrect result, received nil (expected 2085924839766513752338888384931203236916703635113918720651407820138886450957656787131798913024)
+            2147483648 ^ 10
+        Negative RHS: Incorrect result, received nil (expected 0.001953125)
+            8.0 ^ -3
+        Invalid RHS: Expected RuntimeException, received nil
+            2 ^ 1.7
+  Scope (0/4):
+    If Scope: Incorrect log, received "123434"
+        FUN main() DO
+            LET x = 1;
+            LET y = 2;
+            log(x);
+            log(y);
+            IF TRUE DO
+                LET x = 3;
+                y = 4;
+                log(x);
+                log(y);
+            END
+            log(x);
+            log(y);
+        END
+
+    Function Scope: Incorrect result, received 10 (expected 8)
+        VAR x = 1;
+        VAR y = 2;
+        VAR z = 3;
+        FUN f(z) DO
+            RETURN x + y + z;
+        END
+        FUN main() DO
+            LET y = 4;
+            RETURN f(5);
+        END
+  Program (0/2):
+    Sum List: Unexpected java.lang.ClassCastException (plc.project.Ast$Expression$Access cannot be cast to plc.project.Ast$Expression$Literal)
+        VAL len = 5;
+        LIST list = [1, 2, 3, 4, 5];
+        FUN main() DO
+            LET total = 0;
+            LET i = 0;
+            WHILE i < len DO
+                total = total + list[i];
+                i = i + 1;
+            END
+            RETURN total;
+        END

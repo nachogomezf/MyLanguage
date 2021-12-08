@@ -1,0 +1,10 @@
+ParserTests [After Types] (13/16):
+  Function Definition (1/4):
+    Baseline Function: Unexpected ParseException (Expected ()
+    Argument Type: Unexpected ParseException (Expected ()
+    Explicit Return Type: Unexpected ParseException (Expected ()
+Peter Dobbins , Dec 1 at 5:28pm
+ParserTests [Before Types] (50/51):
+  Statement (16/17):
+    Switch (2/3):
+      Case Switch: Unexpected ParseException (Missing ; 2)

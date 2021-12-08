@@ -1,0 +1,17 @@
+AnalyzerTests (91/100):
+  Source (5/6):
+    Global List: Unexpected java.lang.IllegalStateException (type is uninitialized)
+  Global (5/7):
+    List: Unexpected java.lang.IllegalStateException (type is uninitialized)
+    Invalid List: Unexpected java.lang.IllegalStateException (type is uninitialized)
+  Function (5/7):
+    Valid Parameter Use: Unexpected java.lang.RuntimeException (The variable x is not defined in this scope.)
+    Multi Parameter Use: Unexpected java.lang.RuntimeException (The variable x is not defined in this scope.)
+  Stmt (30/32):
+    Assignment (2/4):
+      List : Unexpected java.lang.IllegalStateException (type is uninitialized)
+      Invalid List Assignment: Unexpected java.lang.IllegalStateException (type is uninitialized)
+  Expr (41/43):
+    Group (2/4):
+      Grouped Binary: Unexpected java.lang.StackOverflowError: unknown?
+      Nested: Unexpected java.lang.StackOverflowError: unknown?
